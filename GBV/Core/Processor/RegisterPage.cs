@@ -1,21 +1,53 @@
-﻿using gbv;
+﻿using System.ComponentModel;
+using GBV.Core.Bus;
 
 namespace GBV.Core.Processor;
 
 [Flags]
 public enum CpuFlags : byte
 {
+    None = 0,
     Z = 0b1000_0000,
     N = 0b0100_0000,
     H = 0b0010_0000,
-    C = 0b0001_0000
+    C = 0b0001_0000,
+    
+    ZN = Z | N,
+    ZH = Z | H,
+    ZC = Z | C,
+    
+    ZNH = ZN | H,
+    ZNC = ZN | C,
+    
+    ZHC = ZH | C,
+    
+    ZNHC = ZNH | C,
+    
+    NH = N | H,
+    NC = N | C,
+    
+    NHC = NH | C,
+    
+    HC = H | C
+}
+
+public enum Register
+{
+    A, B, C, D, E, F, H, L, AF, BC, DE, HL, HLI, HLD, SP, HLPtr
 }
 
 public struct RegisterPage
 {
-    public byte A, B, C, D, E, F, H, L;
+    private byte _f;
+    public byte A, B, C, D, E, H, L;
 
-    public byte MaskedF => (byte)(F & 0xF0);
+    public byte F
+    {
+        get => (byte)(_f & 0xF0);
+        set => _f = value;
+    }
+
+    public CpuFlags Flags => (CpuFlags)F;
 
     public ushort SP, PC;
     
@@ -41,5 +73,54 @@ public struct RegisterPage
     {
         get => IntegerHelper.JoinBytes(H, L);
         set => (H, L) = IntegerHelper.SplitShort(value);
+    }
+
+    public void ApplyFlags(CpuFlags set, CpuFlags mask = CpuFlags.ZNHC)
+    {
+        F &= (byte)~mask;
+        F |= (byte)(set & mask);
+    }
+
+    public int GetRegister(Register reg, IBus? bus = null) => reg switch
+    {
+        Register.A => A,
+        Register.B => B,
+        Register.C => C,
+        Register.D => D,
+        Register.E => E,
+        Register.F => F,
+        Register.H => H,
+        Register.L => L,
+        Register.AF => AF,
+        Register.BC => BC,
+        Register.DE => DE,
+        Register.HL => HL,
+        Register.HLI => HL++,
+        Register.HLD => HL--,
+        Register.SP => SP,
+        Register.HLPtr => bus?.ReadByte(HL) ?? throw new NullReferenceException("No bus passed for HL pointer"),
+        _ => throw new InvalidEnumArgumentException()
+    };
+
+    public void SetRegister(Register reg, int value)
+    {
+        ref RegisterPage self = ref this;
+        int _ = reg switch
+        {
+            Register.A => A = (byte)value,
+            Register.B => B = (byte)value,
+            Register.C => C = (byte)value,
+            Register.D => D = (byte)value,
+            Register.E => E = (byte)value,
+            Register.F => F = (byte)value,
+            Register.H => H = (byte)value,
+            Register.L => L = (byte)value,
+            Register.AF => AF = (ushort)value,
+            Register.BC => BC = (ushort)value,
+            Register.DE => DE = (ushort)value,
+            Register.HL => HL = (ushort)value,
+            Register.SP => SP = (ushort)value,
+            _ => throw new InvalidEnumArgumentException()
+        };
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace gbv;
+﻿namespace GBV;
 
 public static class IntegerHelper
 {

@@ -114,6 +114,36 @@ public class BinaryPatternMatcher<TNum, TReturn> where TNum : IBinaryInteger<TNu
 
         _head.AddNode(n);
     }
+
+    public void AddMatch(string bits, Func<TNum, TReturn> call)
+    {
+        TNum wildcard = TNum.Zero;
+        TNum @static = TNum.Zero;
+        foreach (char c in bits)
+        {
+            switch (c)
+            {
+                case '0':
+                    wildcard <<= 1;
+                    @static <<= 1;
+                    break;
+                case '1':
+                    wildcard <<= 1;
+                    @static <<= 1;
+                    @static |= TNum.One;
+                    break;
+                case '*':
+                    wildcard <<= 1;
+                    @static <<= 1;
+                    wildcard |= TNum.One;
+                    break;
+                case '_':
+                    continue;
+                default:
+                    throw new FormatException("BinaryPattern must only contain 1, 0, *, or _");
+            }
+        }
+    }
     
     public BinaryPatternMatcher(Func<TNum, TReturn> baseCase)
     {

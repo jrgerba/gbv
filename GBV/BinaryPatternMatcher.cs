@@ -81,8 +81,8 @@ public class BinaryPatternMatcher<TNum, TReturn> where TNum : IBinaryInteger<TNu
 
         private void ToString(int depth, StringBuilder sb)
         {
-            foreach (BpmNode n in _branches)
-                n.ToString(depth + 1, sb);
+            //foreach (BpmNode n in _branches)
+                //n.ToString(depth + 1, sb);
             
             int bits = TypeInfo<TNum>.Size * 8;
             
@@ -143,6 +143,8 @@ public class BinaryPatternMatcher<TNum, TReturn> where TNum : IBinaryInteger<TNu
                     throw new FormatException("BinaryPattern must only contain 1, 0, *, or _");
             }
         }
+        
+        AddMatch(wildcard, @static, call);
     }
     
     public BinaryPatternMatcher(Func<TNum, TReturn> baseCase)

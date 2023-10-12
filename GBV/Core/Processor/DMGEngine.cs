@@ -187,7 +187,177 @@ public class DMGEngine
         
         // halt
         match.AddMatch("0111_0110", op => (page, bus) => throw new NotImplementedException());
+        
+        // ld r8, r8
+        match.AddMatch("01**_****", op =>
+        {
+            Register dest = R8((op >> 3) & 0b111);
+            Register src = R8(op & 0b111);
 
+            return (page, bus) =>
+            {
+                page.SetRegister(dest, page.GetRegister(src));
+                return page;
+            };
+        });
+        
+        // ALU_OP r8
+        match.AddMatch("10**_****", op =>
+        {
+            Register r = R8(op & 0b111);
+            InstructionInfo info = GetInfo(op);
+
+            return ((op >> 3) & 0b111) switch
+            {
+                // add r8
+                0 => (page, bus) =>
+                {
+                    (CpuFlags f, page.A) = Add(page.A, (byte)page.GetRegister(r, bus));
+                    page.ApplyFlags(f, info.FlagMask);
+                    return page;
+                },
+                // adc r8
+                1 => (page, bus) =>
+                {
+                    (CpuFlags f, page.A) = Add(page.A, (byte)page.GetRegister(r, bus),
+                        page.Flags.HasFlag(CpuFlags.C) ? 1 : 0);
+                    page.ApplyFlags(f, info.FlagMask);
+                    return page;
+                },
+                // sub r8
+                2 => (page, bus) =>
+                {
+                    (CpuFlags f, page.A) = Sub(page.A, (byte)page.GetRegister(r, bus));
+                    page.ApplyFlags(f, info.FlagMask);
+                    return page;
+                },
+                // sbc r8
+                3 => (page, bus) =>
+                {
+                    (CpuFlags f, page.A) = Sub(page.A, (byte)page.GetRegister(r, bus),
+                        page.Flags.HasFlag(CpuFlags.C) ? 1 : 0);
+                    page.ApplyFlags(f, info.FlagMask);
+                    return page;
+                },
+                // and r8
+                4 => (page, bus) =>
+                {
+                    (CpuFlags f, page.A) = AluBit(AluMisc.And, page.A, (byte)page.GetRegister(r, bus));
+                    page.ApplyFlags(f, info.FlagMask);
+                    return page;
+                },
+                // xor r8
+                5 => (page, bus) =>
+                {
+                    (CpuFlags f, page.A) = AluBit(AluMisc.Xor, page.A, (byte)page.GetRegister(r, bus));
+                    page.ApplyFlags(f, info.FlagMask);
+                    return page;
+                },
+                // or r8
+                6 => (page, bus) =>
+                {
+                    (CpuFlags f, page.A) = AluBit(AluMisc.Or, page.A, (byte)page.GetRegister(r, bus));
+                    page.ApplyFlags(f, info.FlagMask);
+                    return page;
+                },
+                // cp r8
+                7 => (page, bus) =>
+                {
+                    (CpuFlags f, _) = Sub(page.A, (byte)page.GetRegister(r, bus));
+                    page.ApplyFlags(f, info.FlagMask);
+                    return page;
+                },
+                
+                _ => throw new UnreachableException()
+            };
+        });
+
+        // ret cc
+        match.AddMatch("110*_*000", op =>
+        {
+            BranchCondition cc = (BranchCondition)((op >> 3) & 0b11);
+            BranchInstructionInfo info = (BranchInstructionInfo)GetInfo(op);
+
+            return (page, bus) =>
+            {
+                if (EvalBranch(page.Flags, cc))
+                {
+                    WorkTime += info.BranchTime;
+                    page.PC = Pop(ref page, bus);
+                }
+
+                return page;
+            };
+        });
+        
+        // ld (FF00+u8), a
+        match.AddMatch("1110_0000", op => (page, bus) =>
+        {
+            bus.Write((ushort)(0xFF00 + ImmediateByte(ref page, bus)), page.A);
+            return page;
+        });
+        
+        // add sp, i8
+        match.AddMatch("1110_1000", op => (page, bus) =>
+        {
+            (CpuFlags f, page.SP) = Add(page.SP, (sbyte)ImmediateByte(ref page, bus));
+            page.ApplyFlags(f, GetInfo(op).FlagMask);
+            return page;
+        });
+        
+        // ld a, (FF00+u8)
+        match.AddMatch("1111_0000", op => (page, bus) =>
+        {
+            page.A = bus.ReadByte((ushort)(0xFF00 + ImmediateByte(ref page, bus)));
+            return page;
+        });
+        
+        // ld hl, SP+i8
+        match.AddMatch("1111_1000", op => (page, bus) =>
+        {
+            (CpuFlags f, page.HL) = Add(page.SP, (sbyte)ImmediateByte(ref page, bus));
+            page.ApplyFlags(f, GetInfo(op).FlagMask);
+            return page;
+        });
+        
+        // pop r16
+        match.AddMatch("11**_0001", op =>
+        {
+            Register param = R16(((op >> 4) & 0b11), 3);
+
+            return (page, bus) =>
+            {
+                page.SetRegister(param, Pop(ref page, bus));
+                return page;
+            };
+        });
+        
+        // ret
+        match.AddMatch("1100_1001", op => (page, bus) =>
+        {
+            page.PC = Pop(ref page, bus);
+            return page;
+        });
+        
+        // reti
+        match.AddMatch("1101_1001", op => (page, bus) => throw new NotImplementedException());
+        
+        // jp hl
+        match.AddMatch("1110_1001", op => (page, bus) =>
+        {
+            page.PC = page.HL;
+            return page;
+        });
+        
+        // ld sp, hl
+        match.AddMatch("1111_1001", op => (page, bus) =>
+        {
+            page.SP = page.HL;
+            return page;
+        });
+        
+        
+        
         return match;
 
         Register R16(int reg, int group) => group switch
@@ -343,6 +513,19 @@ public class DMGEngine
     private bool Bit(byte v, int bit) => (v & (1 << bit)) == 0;
 
     private byte BitSet(byte v, int bit, bool set) => v = (byte)(set ? (v | (1 << bit)) : (v & ~(1 << bit)));
+
+    private ushort Pop(ref RegisterPage page, IBus bus)
+    {
+        byte low = bus.ReadByte(page.SP++);
+        return IntegerHelper.JoinBytes(bus.ReadByte(page.SP++), low);
+    }
+
+    private void Push(ref RegisterPage page, IBus bus, ushort value)
+    {
+        (byte high, byte low) = IntegerHelper.SplitShort(value);
+        bus.Write(--page.SP, high);
+        bus.Write(--page.SP, low);
+    }
 
     private void InvalidOperation()
     {

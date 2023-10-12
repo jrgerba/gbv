@@ -102,25 +102,56 @@ public struct RegisterPage
         _ => throw new InvalidEnumArgumentException()
     };
 
-    public void SetRegister(Register reg, int value)
+    public void SetRegister(Register reg, int value, IBus bus = null)
     {
-        ref RegisterPage self = ref this;
-        int _ = reg switch
+        switch (reg)
         {
-            Register.A => A = (byte)value,
-            Register.B => B = (byte)value,
-            Register.C => C = (byte)value,
-            Register.D => D = (byte)value,
-            Register.E => E = (byte)value,
-            Register.F => F = (byte)value,
-            Register.H => H = (byte)value,
-            Register.L => L = (byte)value,
-            Register.AF => AF = (ushort)value,
-            Register.BC => BC = (ushort)value,
-            Register.DE => DE = (ushort)value,
-            Register.HL => HL = (ushort)value,
-            Register.SP => SP = (ushort)value,
-            _ => throw new InvalidEnumArgumentException()
-        };
+            case Register.A:
+                A = (byte)value;
+                break;
+            case Register.B:
+                B = (byte)value;
+                break;
+            case Register.C:
+                C = (byte)value;
+                break;
+            case Register.D:
+                D = (byte)value;
+                break;
+            case Register.E:
+                E = (byte)value;
+                break;
+            case Register.F:
+                F = (byte)value;
+                break;
+            case Register.H:
+                H = (byte)value;
+                break;
+            case Register.L:
+                L = (byte)value;
+                break;
+            case Register.AF:
+                AF = (ushort)value;
+                break;
+            case Register.BC:
+                BC = (ushort)value;
+                break;
+            case Register.DE:
+                DE = (ushort)value;
+                break;
+            case Register.HL:
+                HL = (ushort)value;
+                break;
+            case Register.SP:
+                SP = (ushort)value;
+                break;
+            case Register.HLPtr:
+                bus.Write(HL, (byte)value);
+                break;
+            case Register.HLI:
+            case Register.HLD:
+            default:
+                throw new InvalidEnumArgumentException();
+        }
     }
 }

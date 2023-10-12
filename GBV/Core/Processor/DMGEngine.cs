@@ -40,49 +40,6 @@ public class DMGEngine
 
     private BinaryPatternMatcher<byte, Operation> GenerateBinaryMatcher()
     {
-        Register R16(int reg, int group) => group switch
-        {
-            1 => reg switch
-            {
-                0 => Register.BC,
-                1 => Register.DE,
-                2 => Register.HL,
-                3 => Register.SP,
-                _ => throw new InvalidEnumArgumentException()
-            },
-            2 => reg switch
-            {
-                0 => Register.BC,
-                1 => Register.DE,
-                2 => Register.HLI,
-                3 => Register.HLD,
-                _ => throw new InvalidEnumArgumentException()
-            },
-            3 => reg switch
-            {
-                0 => Register.BC,
-                1 => Register.DE,
-                2 => Register.HL,
-                3 => Register.AF,
-                _ => throw new InvalidEnumArgumentException()
-
-            },
-            _ => throw new InvalidEnumArgumentException()
-        };
-
-        Register R8(int reg) => reg switch
-        {
-            0 => Register.B,
-            1 => Register.C,
-            2 => Register.D,
-            3 => Register.E,
-            4 => Register.H,
-            5 => Register.L,
-            6 => Register.HLPtr,
-            7 => Register.A,
-            _ => throw new InvalidEnumArgumentException()
-        };
-
         BinaryPatternMatcher<byte, Operation> match = new(op => (page, _) =>
         {
             InvalidOperation();
@@ -232,6 +189,49 @@ public class DMGEngine
         match.AddMatch("0111_0110", op => (page, bus) => throw new NotImplementedException());
 
         return match;
+
+        Register R16(int reg, int group) => group switch
+        {
+            1 => reg switch
+            {
+                0 => Register.BC,
+                1 => Register.DE,
+                2 => Register.HL,
+                3 => Register.SP,
+                _ => throw new InvalidEnumArgumentException()
+            },
+            2 => reg switch
+            {
+                0 => Register.BC,
+                1 => Register.DE,
+                2 => Register.HLI,
+                3 => Register.HLD,
+                _ => throw new InvalidEnumArgumentException()
+            },
+            3 => reg switch
+            {
+                0 => Register.BC,
+                1 => Register.DE,
+                2 => Register.HL,
+                3 => Register.AF,
+                _ => throw new InvalidEnumArgumentException()
+
+            },
+            _ => throw new InvalidEnumArgumentException()
+        };
+
+        Register R8(int reg) => reg switch
+        {
+            0 => Register.B,
+            1 => Register.C,
+            2 => Register.D,
+            3 => Register.E,
+            4 => Register.H,
+            5 => Register.L,
+            6 => Register.HLPtr,
+            7 => Register.A,
+            _ => throw new InvalidEnumArgumentException()
+        };
     }
     
     private byte ImmediateByte(ref RegisterPage reg, IBus bus) => 0;

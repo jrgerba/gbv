@@ -197,6 +197,7 @@ public class DMGEngine
                 break;
             // 29 - ADD HL,HL
             case 0x29:
+                page.HL = Add(page.HL, page.HL);
                 break;
             // 2A - LD A,(HL+)
             case 0x2A:
@@ -349,7 +350,9 @@ public class DMGEngine
                 break;
             // CB - PREFIX CB
             case 0xCB:
-                ExecuteCB(Immediate(page, bus), page, bus);
+                byte extendedInst = Immediate(page, bus);
+                info = GetInstructionInfo(extendedInst, true);
+                ExecuteCB(extendedInst, page, bus);
                 break;
             // CC - CALL Z,u16
             case 0xCC:
@@ -602,8 +605,6 @@ public class DMGEngine
     private void ExecuteCB(byte operation, IRegisterPage page, IBus bus)
     {
         int reg = operation & 0b111;
-
-        WorkTime += GetInstructionInfo(operation, true).BaseTime;
         
         switch (operation)
         {

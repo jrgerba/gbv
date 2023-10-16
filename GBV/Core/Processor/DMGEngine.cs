@@ -1310,7 +1310,7 @@ public class DMGEngine
     private ushort Add(ushort a, sbyte b)
     {
         _internalF.H = (((a & 0x0F) + (b & 0x0F)) & 0x10) == 0x10;
-        _internalF.C = (((a & 0xFF) + (b & 0x0F)) & 0x100) == 0x100;
+        _internalF.C = (((a & 0xFF) + (b & 0xFF)) & 0x100) == 0x100;
 
         return (ushort)(a + b);
     }

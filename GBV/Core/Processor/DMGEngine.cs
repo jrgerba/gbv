@@ -346,7 +346,7 @@ public class DMGEngine
                 break;
             // CA - JP Z,u16
             case 0xCA:
-                Jp(Immediate(page, bus), BranchCondition.Z, page);
+                Jp(Immediate16(page, bus), BranchCondition.Z, page);
                 break;
             // CB - PREFIX CB
             case 0xCB:

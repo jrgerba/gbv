@@ -149,7 +149,7 @@ public class DMGEngine
                 break;
             // 1D - DEC E
             case 0x1D:
-                page.E = Dec(page.D);
+                page.E = Dec(page.E);
                 break;
             // 1E - LD E,u8
             case 0x1E:

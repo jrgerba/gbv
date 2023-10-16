@@ -1,55 +1,29 @@
-﻿using System.ComponentModel;
-using GBV.Core.Bus;
+﻿namespace GBV.Core.Processor;
 
-namespace GBV.Core.Processor;
+public enum Register8 { A, B, C, D, E, F, H, L }
 
-[Flags]
-public enum CpuFlags : byte
-{
-    None = 0,
-    Z = 0b1000_0000,
-    N = 0b0100_0000,
-    H = 0b0010_0000,
-    C = 0b0001_0000,
-    
-    ZN = Z | N,
-    ZH = Z | H,
-    ZC = Z | C,
-    
-    ZNH = ZN | H,
-    ZNC = ZN | C,
-    
-    ZHC = ZH | C,
-    
-    ZNHC = ZNH | C,
-    
-    NH = N | H,
-    NC = N | C,
-    
-    NHC = NH | C,
-    
-    HC = H | C
-}
+public enum Register16 { AF, BC, DE, HL, SP, PC }
 
-public enum Register
-{
-    A, B, C, D, E, F, H, L, AF, BC, DE, HL, HLI, HLD, SP, HLPtr
-}
-
-public struct RegisterPage
+public class RegisterPage : IRegisterPage
 {
     private byte _f;
-    public byte A, B, C, D, E, H, L;
+    public byte A { get; set; }
+    public byte B { get; set; }
+    public byte C { get; set; }
+    public byte D { get; set; }
+    public byte E { get; set; }
 
     public byte F
     {
-        get => (byte)(_f & 0xF0);
-        set => _f = value;
+        get => _f;
+        set => _f = (byte)(value & 0xF0);
     }
+    public byte H { get; set; }
+    public byte L { get; set; }
 
-    public CpuFlags Flags => (CpuFlags)F;
-
-    public ushort SP, PC;
+    public ushort SP { get; set; }
+    
+    public ushort PC { get; set; }
     
     public ushort AF
     {
@@ -75,83 +49,4 @@ public struct RegisterPage
         set => (H, L) = IntegerHelper.SplitShort(value);
     }
 
-    public void ApplyFlags(CpuFlags set, CpuFlags mask = CpuFlags.ZNHC)
-    {
-        F &= (byte)~mask;
-        F |= (byte)(set & mask);
-    }
-
-    public int GetRegister(Register reg, IBus? bus = null) => reg switch
-    {
-        Register.A => A,
-        Register.B => B,
-        Register.C => C,
-        Register.D => D,
-        Register.E => E,
-        Register.F => F,
-        Register.H => H,
-        Register.L => L,
-        Register.AF => AF,
-        Register.BC => BC,
-        Register.DE => DE,
-        Register.HL => HL,
-        Register.HLI => HL++,
-        Register.HLD => HL--,
-        Register.SP => SP,
-        Register.HLPtr => bus?.ReadByte(HL) ?? throw new NullReferenceException("No bus passed for HL pointer"),
-        _ => throw new InvalidEnumArgumentException()
-    };
-
-    public void SetRegister(Register reg, int value, IBus bus = null)
-    {
-        switch (reg)
-        {
-            case Register.A:
-                A = (byte)value;
-                break;
-            case Register.B:
-                B = (byte)value;
-                break;
-            case Register.C:
-                C = (byte)value;
-                break;
-            case Register.D:
-                D = (byte)value;
-                break;
-            case Register.E:
-                E = (byte)value;
-                break;
-            case Register.F:
-                F = (byte)value;
-                break;
-            case Register.H:
-                H = (byte)value;
-                break;
-            case Register.L:
-                L = (byte)value;
-                break;
-            case Register.AF:
-                AF = (ushort)value;
-                break;
-            case Register.BC:
-                BC = (ushort)value;
-                break;
-            case Register.DE:
-                DE = (ushort)value;
-                break;
-            case Register.HL:
-                HL = (ushort)value;
-                break;
-            case Register.SP:
-                SP = (ushort)value;
-                break;
-            case Register.HLPtr:
-                bus.Write(HL, (byte)value);
-                break;
-            case Register.HLI:
-            case Register.HLD:
-            default:
-                throw new InvalidEnumArgumentException();
-        }
-    }
 }

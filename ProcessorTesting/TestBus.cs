@@ -8,7 +8,13 @@ public class TestBus : IBus
 {
     private byte[] _data = new byte[0x10000];
 
-    public byte ReadByte(ushort address) => _data[address];
+    public byte ReadByte(ushort address)
+    {
+        if (address == 0xFF44)
+            return 0x90;
+        
+        return _data[address];
+    }
 
     public ushort ReadShort(ushort address)
     {

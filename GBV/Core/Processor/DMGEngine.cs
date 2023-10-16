@@ -578,7 +578,7 @@ public class DMGEngine
                 
                 // SUB r8
                 case 2:
-                    return Sub(page.A, ReadRegister(page, bus, reg), true);
+                    return Sub(page.A, ReadRegister(page, bus, reg), false);
                 
                 // SBC r8
                 case 3:

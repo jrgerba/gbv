@@ -1489,7 +1489,28 @@ public class DMGEngine
         return v;
     }
 
-    private byte Daa(byte a, StatusRegister r) => throw new NotImplementedException();
+    // This function is from https://ehaskins.com/2018-01-30%20Z80%20DAA/
+    private byte Daa(byte a, StatusRegister r)
+    {
+        int correction = 0;
+
+        bool setFlagC = false;
+        if (r.H || (!r.N && (a & 0xf) > 9))
+            correction |= 0x6;
+
+        if (r.C || (!r.N && a > 0x99))
+        {
+            correction |= 0x60;
+            setFlagC = true;
+        }
+
+        a += (byte)(r.N ? -correction : correction);
+
+        _internalF.Z = a == 0;
+        _internalF.C = setFlagC;
+
+        return a;
+    }
 
     private void Di()
     {

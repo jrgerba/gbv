@@ -1395,7 +1395,7 @@ public class DMGEngine
     {
         _internalF.C = (v & 1) == 1;
 
-        v = (byte)((v >> 1) | (v << 7));
+        v = (byte)((v >> 1) | (v & 0x80));
 
         _internalF.Z = v == 0;
 

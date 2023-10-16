@@ -61,7 +61,7 @@ public class DMGEngine
                 break;
             // 07 - RLCA
             case 0x07:
-                Rl(page.A, ((StatusRegister)page.F).C, false);
+                page.A = Rlc(page.A, false);
                 break;
             // 08 - LD (u16),SP
             case 0x08:

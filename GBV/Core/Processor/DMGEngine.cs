@@ -1,9 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Reflection.Metadata;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 using GBV.Core.Bus;
 using GBV.Core.Processor;
 
@@ -11,11 +7,15 @@ namespace GBV.Core;
 
 public class DMGEngine
 {
-    public int WorkTime { get; private set; }
+    public int WorkTime => _workTime;
+    public bool IME => _ime;
     public StatusRegister _internalF;
 
     private InstructionInfo[] _baseInfo;
     private InstructionInfo[] _extendedInfo;
+    private bool _ime;
+    private int _workTime;
+    private int _imeDelay = 0;
     
     public DMGEngine()
     {
@@ -25,9 +25,25 @@ public class DMGEngine
     
     public void Execute(byte operation, IRegisterPage page, IBus bus)
     {
+        InterruptHandler handler = new(ref _ime, bus);
+
+        if (handler.IsInterruptWaiting)
+        {
+            handler.HandleInterrupt(handler.NextInterrupt, page, ref _workTime);
+            return;
+        }
+
+        if (_imeDelay == 2)
+            _imeDelay = 1;
+        else if (_imeDelay != 0)
+        {
+            _ime = true;
+            _imeDelay = 0;
+        }
+        
         InstructionInfo info = GetInstructionInfo(operation, false);
 
-        WorkTime = info.BaseTime;
+        _workTime = info.BaseTime;
         _internalF = 0;
         
         switch (operation)
@@ -408,7 +424,7 @@ public class DMGEngine
                 break;
             // D9 - RETI
             case 0xD9:
-                Reti();
+                Reti(page, bus);
                 break;
             // DA - JP C,u16
             case 0xDA:
@@ -1431,7 +1447,7 @@ public class DMGEngine
             return false;
 
         if (cc != BranchCondition.None)
-            WorkTime += branchTime;
+            _workTime += branchTime;
         
         return true;
     }
@@ -1469,9 +1485,10 @@ public class DMGEngine
         page.PC = Pop(page, bus);
     }
 
-    private void Reti()
+    private void Reti(IRegisterPage page, IBus bus)
     {
-        throw new NotImplementedException();
+        _ime = true;
+        Ret(BranchCondition.None, page, bus);
     }
 
     private void Ccf(bool c)
@@ -1514,12 +1531,12 @@ public class DMGEngine
 
     private void Di()
     {
-        
+        _ime = false;
     }
 
-    private void Ei() 
+    private void Ei()
     {
-        
+        _imeDelay = 2;
     }
 
     private void Halt() => throw new NotImplementedException();

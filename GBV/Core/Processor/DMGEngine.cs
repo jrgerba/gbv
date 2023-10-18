@@ -26,20 +26,6 @@ public class DMGEngine
     public void Execute(byte operation, IRegisterPage page, IBus bus)
     {
         InterruptHandler handler = new(ref _ime, bus);
-
-        if (handler.IsInterruptWaiting)
-        {
-            handler.HandleInterrupt(handler.NextInterrupt, page, ref _workTime);
-            return;
-        }
-
-        if (_imeDelay == 2)
-            _imeDelay = 1;
-        else if (_imeDelay != 0)
-        {
-            _ime = true;
-            _imeDelay = 0;
-        }
         
         InstructionInfo info = GetInstructionInfo(operation, false);
 
@@ -575,6 +561,17 @@ public class DMGEngine
         page.F &= (byte)~info.FlagMask;
         _internalF = (byte)(_internalF.Value & info.FlagMask);
         page.F |= (byte)_internalF;
+        
+        if (_imeDelay == 2)
+            _imeDelay = 1;
+        else if (_imeDelay != 0)
+        {
+            _ime = true;
+            _imeDelay = 0;
+        }
+        
+        if (handler.IsInterruptWaiting)
+            handler.HandleInterrupt(handler.NextInterrupt, page, ref _workTime);
         
         return;
 

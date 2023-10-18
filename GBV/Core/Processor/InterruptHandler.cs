@@ -20,59 +20,59 @@ public ref struct InterruptHandler
     
     private ref bool _ime;
     private IBus _bus;
-    private const ushort InterruptEnableAddress = 0xFFFF;
-    private const ushort InterruptPendingAddress = 0xFF0F;
-
+    
     public ushort GetInterruptVector(Interrupt interrupt) => interrupt switch
     {
-        Interrupt.VBlank => 0x40,
-        Interrupt.LCD => 0x48,
-        Interrupt.Timer => 0x50,
-        Interrupt.Serial => 0x58,
-        Interrupt.Joypad => 0x60,
+        Interrupt.VBlank => MemoryMap.IntVBlank,
+        Interrupt.LCD => MemoryMap.IntStat,
+        Interrupt.Timer => MemoryMap.IntTimer,
+        Interrupt.Serial => MemoryMap.IntSerial,
+        Interrupt.Joypad => MemoryMap.IntJoypad,
         _ => throw new InvalidEnumArgumentException()
     };
 
     public void HandleInterrupt(Interrupt interrupt, IRegisterPage page, ref int workTime)
     {
         // Push address to stack
-        _bus.Write(page.SP -= 2, --page.PC);
-        PendingInterrupts &= ~interrupt;
-        workTime = ISRTime;
+        _bus.Write(page.SP -= 2, page.PC);
+        FlaggedInterrupts &= ~interrupt;
         _ime = false;
+        workTime += ISRTime;
         page.PC = GetInterruptVector(interrupt);
     }
     
-    public bool IsInterruptWaiting => WaitingInterrupts != Interrupt.None && _ime;
+    public bool IsInterruptWaiting => WaitingInterrupts != Interrupt.None;
 
     public Interrupt NextInterrupt
     {
         get
         {
-            Interrupt interrupts = WaitingInterrupts;
-            
-            for (int i = 0; i < 5; i++)
-            {
-                if ((((int)interrupts >> i) & 1) == 1)
-                    return (Interrupt)(0x10 >> (4 - i));
-            }
+            Interrupt interrupt = WaitingInterrupts;
 
-            return Interrupt.None;
+            return interrupt switch
+            {
+                _ when ((interrupt & Interrupt.VBlank) != Interrupt.None) => Interrupt.VBlank,
+                _ when ((interrupt & Interrupt.LCD) != Interrupt.None) => Interrupt.LCD,
+                _ when ((interrupt & Interrupt.Timer) != Interrupt.None) => Interrupt.Timer,
+                _ when ((interrupt & Interrupt.Serial) != Interrupt.None) => Interrupt.Serial,
+                _ when ((interrupt & Interrupt.Joypad) != Interrupt.None) => Interrupt.Joypad,
+                _ => Interrupt.None
+            };
         }
     }
 
-    public Interrupt WaitingInterrupts => PendingInterrupts & EnabledInterrupts;
+    public Interrupt WaitingInterrupts => _ime ? FlaggedInterrupts & EnabledInterrupts : Interrupt.None;
 
-    public Interrupt PendingInterrupts
+    public Interrupt FlaggedInterrupts
     {
-        get => (Interrupt)_bus.ReadByte(InterruptPendingAddress);
-        set => _bus.Write(InterruptPendingAddress, (byte)value);
+        get => (Interrupt)_bus.ReadByte(MemoryMap.IF);
+        set => _bus.Write(MemoryMap.IF, (byte)value);
     }
 
     public Interrupt EnabledInterrupts
     {
-        get => (Interrupt)_bus.ReadByte(InterruptPendingAddress);
-        set => _bus.Write(InterruptPendingAddress, (byte)value);
+        get => (Interrupt)_bus.ReadByte(MemoryMap.IE);
+        set => _bus.Write(MemoryMap.IE, (byte)value);
     }
 
     public InterruptHandler(ref bool ime, IBus bus)

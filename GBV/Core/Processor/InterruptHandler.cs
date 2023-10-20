@@ -62,7 +62,9 @@ public class InterruptHandler : IWBusComponent, IRBusComponent, IEBusComponent
         }
     }
 
-    public Interrupt WaitingInterrupts => IME ? IF & IE : Interrupt.None;
+    public Interrupt WaitingInterrupts => IME ? IFIE : Interrupt.None;
+
+    public Interrupt IFIE => IF & IE;
 
     public Interrupt IF { get; set; }
 
@@ -109,7 +111,7 @@ public class InterruptHandler : IWBusComponent, IRBusComponent, IEBusComponent
             Interrupt i = NextInterrupt;
             
             _bus.Write(_bus.Processor.RegisterPage.SP -= 2, _bus.Processor.RegisterPage.PC);
-            _bus.WorkTime += 5;
+            _bus.WorkTime += 20;
             _bus.Processor.RegisterPage.PC = GetInterruptVector(i);
             IF &= ~i;
             IME = false;

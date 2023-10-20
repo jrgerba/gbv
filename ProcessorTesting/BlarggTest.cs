@@ -38,6 +38,7 @@ public class Tests
         int count = 0;
         string oldTest = "", oldGood = "";
         
+        // for (int i = 0; i < 1_000_000; i++)
         while (!reader.EndOfStream)
         {
             if (Bus.Processor.RegisterPage.PC < 0x100 && ignoreBoot)

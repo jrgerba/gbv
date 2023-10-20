@@ -14,11 +14,21 @@ public class MainBus : IBus
 
     public void Clock()
     {
-        Processor.Clock();
-        
+        if (Processor.ExecutionState == ExecutionState.Running)
+            Processor.Clock();
+        else
+            WorkTime = 4;
+
         for (int i = 0; i < WorkTime; i++)
+        {
             Timer.Clock();
+            if (Timer.PendingInterrupt)
+                InterruptHandler.IF |= Interrupt.Timer;
+        }
         WorkTime = 0;
+        
+        if (Processor.ExecutionState == ExecutionState.Halt && InterruptHandler.IFIE != Interrupt.None)
+            Processor.ExecutionState = ExecutionState.Running;
         
         InterruptHandler.Clock();
     }

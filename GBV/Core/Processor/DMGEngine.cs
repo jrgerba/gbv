@@ -8,25 +8,20 @@ namespace GBV.Core;
 public class DMGEngine
 {
     public int WorkTime => _workTime;
-    public StatusRegister _internalF;
+    public ExecutionState StateResult { get; private set; }
+    public bool HaltBug { get; private set; }
 
-    private InstructionInfo[] _baseInfo;
-    private InstructionInfo[] _extendedInfo;
-    private bool _ime;
+private InstructionInfo[] _baseInfo = GenerateInstructionInfoTable();
+    private InstructionInfo[] _extendedInfo = GenerateExtendedInfoTable();
     private int _workTime;
-    private int _imeDelay = 0;
-    
-    public DMGEngine()
-    {
-        _baseInfo = GenerateInstructionInfoTable();
-        _extendedInfo = GenerateExtendedInfoTable();
-    }
-    
+    private StatusRegister _internalF;
+
     public void Execute(byte operation, IRegisterPage page, IBus bus)
     {
         InstructionInfo info = GetInstructionInfo(operation, false);
+        StateResult = ExecutionState.Running;
 
-        _workTime = info.BaseTime;
+        _workTime = 0;
         _internalF = 0;
         
         switch (operation)
@@ -287,7 +282,7 @@ public class DMGEngine
                 Ccf(((StatusRegister)page.F).C);
                 break;
             case 0x76:
-                Halt();
+                Halt(bus);
                 break;
             // LD Dest Src
             case < 0x80:
@@ -554,18 +549,11 @@ public class DMGEngine
                 Call(0x0038, BranchCondition.None, page, bus);
                 break;
         }
-
+        _workTime += info.BaseTime;
+        
         page.F &= (byte)~info.FlagMask;
         _internalF = (byte)(_internalF.Value & info.FlagMask);
         page.F |= (byte)_internalF;
-        
-        if (_imeDelay == 2)
-            _imeDelay = 1;
-        else if (_imeDelay != 0)
-        {
-            _ime = true;
-            _imeDelay = 0;
-        }
         
         return;
 
@@ -1183,7 +1171,7 @@ public class DMGEngine
         new(0xC8, "RET Z", 0b0000_0000, 8),
         new(0xC9, "RET", 0b0000_0000, 16),
         new(0xCA, "JP Z,u16", 0b0000_0000, 12),
-        new(0xCB, "PREFIX CB", 0b0000_0000, 4),
+        new(0xCB, "PREFIX CB", 0b0000_0000, 0),
         new(0xCC, "CALL Z,u16", 0b0000_0000, 12),
         new(0xCD, "CALL u16", 0b0000_0000, 24),
         new(0xCE, "ADC A,u8", 0b1111_0000, 8),
@@ -1445,7 +1433,7 @@ public class DMGEngine
     
     private void Call(ushort addr, BranchCondition cc, IRegisterPage page, IBus bus)
     {
-        if (!EvaluateBranch(cc, page, 3)) 
+        if (!EvaluateBranch(cc, page, 12)) 
             return;
 
         Push(page.PC, page, bus);
@@ -1454,7 +1442,7 @@ public class DMGEngine
     
     private void Jp(ushort addr,  BranchCondition cc, IRegisterPage page)
     {
-        if (!EvaluateBranch(cc, page, 1))
+        if (!EvaluateBranch(cc, page, 4))
             return;
 
         page.PC = addr;
@@ -1462,7 +1450,7 @@ public class DMGEngine
 
     private void Jr(sbyte offset, BranchCondition cc, IRegisterPage page)
     {
-        if (!EvaluateBranch(cc, page, 1))
+        if (!EvaluateBranch(cc, page, 4))
             return;
 
         page.PC = (ushort)(page.PC + offset);
@@ -1470,7 +1458,7 @@ public class DMGEngine
 
     private void Ret(BranchCondition cc, IRegisterPage page, IBus bus)
     {
-        if (!EvaluateBranch(cc, page, 3))
+        if (!EvaluateBranch(cc, page, 12))
             return;
 
         page.PC = Pop(page, bus);
@@ -1530,7 +1518,15 @@ public class DMGEngine
         bus.InterruptHandler.DelaySetIME();
     }
 
-    private void Halt() => throw new NotImplementedException();
+    private void Halt(IBus bus)
+    {
+        if (bus.InterruptHandler.IME)
+            StateResult = ExecutionState.Halt;
+        else if (bus.InterruptHandler.WaitingInterrupts != Interrupt.None)
+            StateResult = ExecutionState.Halt;
+        else
+            HaltBug = true;
+    }
     
     private void Nop() {}
 

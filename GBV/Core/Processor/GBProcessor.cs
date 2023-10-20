@@ -6,14 +6,19 @@ public class GBProcessor : ICPU, IRBusComponent, IWBusComponent, IEBusComponent
 {
     public readonly IBus Bus;
     public readonly DMGEngine Engine = new();
+    public ExecutionState ExecutionState { get; set; }
     
     public IRegisterPage RegisterPage { get; private set; } = new RegisterPage();
 
     public void Clock()
     {
         byte inst = Bus.ReadByte(RegisterPage.PC++);
+
+        if (Engine.HaltBug)
+            RegisterPage.PC--;
         
         Engine.Execute(inst, RegisterPage, Bus);
+        ExecutionState = Engine.StateResult;
 
         Bus.WorkTime += Engine.WorkTime;
     }

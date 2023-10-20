@@ -8,7 +8,6 @@ namespace GBV.Core;
 public class DMGEngine
 {
     public int WorkTime => _workTime;
-    public bool IME => _ime;
     public StatusRegister _internalF;
 
     private InstructionInfo[] _baseInfo;
@@ -25,8 +24,6 @@ public class DMGEngine
     
     public void Execute(byte operation, IRegisterPage page, IBus bus)
     {
-        InterruptHandler handler = new(ref _ime, bus);
-        
         InstructionInfo info = GetInstructionInfo(operation, false);
 
         _workTime = info.BaseTime;
@@ -508,7 +505,7 @@ public class DMGEngine
                 break;
             // F3 - DI
             case 0xF3:
-                Di();
+                Di(bus);
                 break;
             // F4 - Illegal Operation
             case 0xF4:
@@ -540,7 +537,7 @@ public class DMGEngine
                 break;
             // FB - EI
             case 0xFB:
-                Ei();
+                Ei(bus);
                 break;
             // FC - Illegal Operation
             case 0xFC:
@@ -569,9 +566,6 @@ public class DMGEngine
             _ime = true;
             _imeDelay = 0;
         }
-        
-        if (handler.IsInterruptWaiting)
-            handler.HandleInterrupt(handler.NextInterrupt, page, ref _workTime);
         
         return;
 
@@ -1484,7 +1478,7 @@ public class DMGEngine
 
     private void Reti(IRegisterPage page, IBus bus)
     {
-        _ime = true;
+        bus.InterruptHandler.IME = true;
         Ret(BranchCondition.None, page, bus);
     }
 
@@ -1526,14 +1520,14 @@ public class DMGEngine
         return a;
     }
 
-    private void Di()
+    private void Di(IBus bus)
     {
-        _ime = false;
+        bus.InterruptHandler.IME = false;
     }
 
-    private void Ei()
+    private void Ei(IBus bus)
     {
-        _imeDelay = 2;
+        bus.InterruptHandler.DelaySetIME();
     }
 
     private void Halt() => throw new NotImplementedException();

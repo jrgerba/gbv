@@ -16,7 +16,8 @@ public class MainBus : IBus
     {
         if (Processor.ExecutionState == ExecutionState.Running)
             Processor.Clock();
-        else
+        
+        if (Processor.ExecutionState == ExecutionState.Halt)
             WorkTime = 4;
 
         for (int i = 0; i < WorkTime; i++)

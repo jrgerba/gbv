@@ -1522,7 +1522,7 @@ private InstructionInfo[] _baseInfo = GenerateInstructionInfoTable();
     {
         if (bus.InterruptHandler.IME)
             StateResult = ExecutionState.Halt;
-        else if (bus.InterruptHandler.WaitingInterrupts != Interrupt.None)
+        else if (bus.InterruptHandler.IFIE == Interrupt.None)
             StateResult = ExecutionState.Halt;
         else
             HaltBug = true;

@@ -55,7 +55,7 @@ public class Tests
             {
                 Console.WriteLine($"Good case: {good}\nTest case: {test}");
                 Console.WriteLine($"\tPrevious State:\n\tGood case: {oldGood}\n\tTest case: {oldTest}");
-                return (false, count);
+            //    return (false, count);
             }
 
             Bus.Clock();

@@ -53,8 +53,8 @@ public class Tests
 
             if (test != good)
             {
-                Console.WriteLine($"Good case: {good}\nTest case: {test}");
-                Console.WriteLine($"\tPrevious State:\n\tGood case: {oldGood}\n\tTest case: {oldTest}");
+                // Console.WriteLine($"Good case: {good}\nTest case: {test}");
+                // Console.WriteLine($"\tPrevious State:\n\tGood case: {oldGood}\n\tTest case: {oldTest}");
             //    return (false, count);
             }
 

@@ -21,6 +21,10 @@ public static class MemoryMap
     public const ushort VRamEnd = 0x9FFF;
     public const ushort VRamLength = VRamEnd - VRamStart + 1;
 
+    public const ushort ERamStart = 0xA000;
+    public const ushort ERamEnd = 0xBFFF;
+    public const ushort ERamLength = ERamEnd - ERamStart + 1;
+
     public const ushort WRam0Start = 0xC000;
     public const ushort WRam0End = 0xCFFF;
     public const ushort WRam0Length = WRam0End - WRam0Start + 1;
